@@ -644,10 +644,31 @@ function doLogin(){
     document.getElementById('lerr').textContent='';
     if(acc.role==='admin'){
       document.getElementById('adate').textContent=new Date().toLocaleDateString('zh-TW')+' 截止 16:00';
-      renderAdmin();showScreen('s-admin');
+      showScreen('s-admin');
+      if(window._fbReady && window.recs){
+        renderAdmin();
+      } else {
+        let tries=0;
+        const wait=setInterval(()=>{
+          tries++;
+          if(window.recs||tries>6){clearInterval(wait);renderAdmin();}
+        },500);
+      }
     } else {
       document.getElementById('store-name').textContent=acc.store;
-      manualItems=[];renderHist();showScreen('s-store');
+      manualItems=[];
+      showScreen('s-store');
+      // 等 Firebase 資料載入後再渲染
+      if(window._fbReady && window.recs){
+        renderHist();
+      } else {
+        // 最多等3秒
+        let tries=0;
+        const wait=setInterval(()=>{
+          tries++;
+          if(window.recs||tries>6){clearInterval(wait);renderHist();}
+        },500);
+      }
     }
   } else {
     document.getElementById('lerr').textContent='帳號或密碼錯誤';
