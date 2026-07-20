@@ -143,16 +143,16 @@ textarea{resize:vertical}
 /* lightbox */
 .lightbox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:200;align-items:center;justify-content:center;cursor:zoom-out;flex-direction:column;gap:10px}
 .lightbox.open{display:flex}
-.lightbox img{max-width:96%;max-height:88vh;object-fit:contain;border-radius:8px}
+.lightbox img{max-width:96%;max-height:88vh;object-fit:contain;border-radius:8px;touch-action:manipulation;transform-origin:center center;transition:transform 0.2s}
 .lightbox-close{color:#fff;font-size:13px;opacity:0.7}
 </style>
 </head>
 <body>
 
 <!-- 照片放大 lightbox -->
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <img id="lightbox-img" src="" alt="放大照片">
-  <div class="lightbox-close">點擊任意處關閉</div>
+<div class="lightbox" id="lightbox" onclick="if(event.target===this||event.target.classList.contains('lightbox-close'))closeLightbox()">
+  <img id="lightbox-img" src="" alt="放大照片" style="touch-action:pinch-zoom">
+  <div class="lightbox-close" onclick="closeLightbox()">✕ 點此關閉</div>
 </div>
 
 <!-- ===== 登入 ===== -->
@@ -592,11 +592,38 @@ function openLightbox(src){
   if(!src)return;
   const img=document.getElementById('lightbox-img');
   img.src=src;
+  img.style.transform='scale(1)';
+  img.style.maxWidth='96%';
+  img.style.maxHeight='88vh';
   document.getElementById('lightbox').classList.add('open');
+
+  // 雙擊放大/縮小
+  let lastTap=0;
+  let zoomed=false;
+  img.ondblclick=()=>{
+    zoomed=!zoomed;
+    img.style.transform=zoomed?'scale(2)':'scale(1)';
+    img.style.maxWidth=zoomed?'none':'96%';
+    img.style.maxHeight=zoomed?'none':'88vh';
+  };
+  img.addEventListener('touchend',function(e){
+    const now=Date.now();
+    if(now-lastTap<300){
+      zoomed=!zoomed;
+      img.style.transform=zoomed?'scale(2)':'scale(1)';
+      img.style.maxWidth=zoomed?'none':'96%';
+      img.style.maxHeight=zoomed?'none':'88vh';
+    }
+    lastTap=now;
+  });
 }
 function closeLightbox(){
+  const img=document.getElementById('lightbox-img');
+  img.style.transform='scale(1)';
+  img.style.maxWidth='96%';
+  img.style.maxHeight='88vh';
   document.getElementById('lightbox').classList.remove('open');
-  document.getElementById('lightbox-img').src='';
+  img.src='';
 }
 function closeLightbox(){
   document.getElementById('lightbox').classList.remove('open');
