@@ -1159,10 +1159,12 @@ async function saveEdit(){
     }catch(e){updateData.photo=editPhoto;}
   }
 
+  // 先儲存 editId 再 closeEdit（closeEdit 會把 editId 設成 null）
+  const savedId=String(editId);
   closeEdit();
 
-  if(window._fbReady && window.updateFirebase && editId){
-    await window.updateFirebase(String(editId),updateData);
+  if(window._fbReady && window.updateFirebase && savedId && savedId!=='null'){
+    await window.updateFirebase(savedId, updateData);
     let refreshCount=0;
     const t=setInterval(()=>{
       refreshCount++;
@@ -1170,7 +1172,7 @@ async function saveEdit(){
       if(refreshCount>=6) clearInterval(t);
     },500);
   } else {
-    const r=recs.find(r=>String(r.id)===String(editId)||r.fbId===String(editId));
+    const r=recs.find(r=>String(r.id)===savedId||r.fbId===savedId);
     if(r)Object.assign(r,updateData);
     renderHist();
   }
@@ -1409,7 +1411,7 @@ async function saveAdminEdit(){
   const newVk=document.getElementById('ae-vk').value;
   const newNo=document.getElementById('ae-no').value.trim();
   const newStatus=document.getElementById('ae-status').value;
-  if(!newNo){alert('單號不能為空');return;}
+  if(!newNo)return;
   const cfg=VC[newVk]||VC[r.vk]||{};
   const updateData={
     vk:newVk, vendor:cfg.label||r.vendor, vGroup:cfg.vGroup||r.vGroup,
@@ -1422,8 +1424,11 @@ async function saveAdminEdit(){
     try{updateData.photo=await compressPhotoClient(adminEditPhoto);}
     catch(e){updateData.photo=adminEditPhoto;}
   }
-  if(window._fbReady && window.updateFirebase && typeof adminEditId==='string'){
-    await window.updateFirebase(adminEditId, updateData);
+  // 先儲存 ID 再 close
+  const savedAdminId=String(adminEditId);
+  closeAdminEdit();
+  if(window._fbReady && window.updateFirebase && savedAdminId && savedAdminId!=='null'){
+    await window.updateFirebase(savedAdminId, updateData);
     let refreshCount=0;
     const t=setInterval(()=>{
       refreshCount++;
@@ -1434,7 +1439,6 @@ async function saveAdminEdit(){
     Object.assign(r, updateData);
     renderAdmin();
   }
-  closeAdminEdit();
 }
 function closeAdminEdit(){document.getElementById('admin-edit-modal').classList.remove('open');adminEditId=null;adminEditPhoto=null;}
 
