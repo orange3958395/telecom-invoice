@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1F3A5F">
+<title>倚盟電訊 · 盤點系統</title>
+<style>
+:root{
+  --bg:#EBEDF0; --surface:#FFF; --ink:#14171C; --muted:#6B7280; --line:#D9DCE1;
+  --ok:#0E7A4B; --ok-bg:#E4F4EC;
+  --bad:#C0281E; --bad-bg:#FCE9E7;
+  --extra:#A45B00; --extra-bg:#FDF0DF;
+  --wait-bg:#F2F3F5; --accent:#1F3A5F;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+button{font-family:inherit;font-size:14px;cursor:pointer}
+input,select{font-family:inherit;font-size:16px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto;padding:10px}
+
+/* 頂部 */
+.top{position:sticky;top:0;z-index:30;background:var(--surface);border:1px solid var(--line);
+     border-radius:10px;padding:9px 11px;margin-bottom:9px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.top-row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#storeSel{padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;font-weight:700;font-size:15px}
+.savetag{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--wait-bg);color:var(--muted)}
+.savetag.on{background:var(--ok-bg);color:var(--ok)}
+.meter{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--wait-bg);margin-top:8px;border:1px solid var(--line)}
+.meter i{display:block;height:100%;transition:width .25s}
+.m-ok{background:var(--ok)} .m-bad{background:var(--bad)} .m-extra{background:var(--extra)}
+.stats{display:flex;flex-wrap:wrap;gap:11px;margin-top:6px;font-size:12px;color:var(--muted)}
+.stats b{font-family:var(--mono);font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.s-ok b{color:var(--ok)!important} .s-bad b{color:var(--bad)!important} .s-extra b{color:var(--extra)!important}
+
+/* 分頁 */
+.tabs{display:flex;gap:6px;margin-bottom:9px}
+.tabs button{flex:1;padding:11px 6px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--muted);font-size:15px}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.pane{display:none} .pane.on{display:block}
+
+/* 每次加 */
+.stepbar{display:flex;gap:6px;align-items:center;margin-bottom:9px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.stepbar button{border:1px solid var(--line);border-radius:7px;background:#fff;padding:7px 13px;min-width:44px}
+.stepbar button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+
+/* 搜尋 */
+#q{width:100%;padding:13px;font-size:17px;border:2px solid var(--accent);border-radius:9px}
+.qhint{font-size:12px;color:var(--muted);margin:6px 0 9px}
+.hit{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 11px;margin-bottom:7px;
+     display:flex;gap:10px;align-items:center}
+.hit.r-ok{background:var(--ok-bg);border-color:#A9DCC4}
+.hit.r-bad{background:var(--bad-bg);border-color:#EFC0BB}
+.hit.r-extra{background:var(--extra-bg);border-color:#E8C48E}
+.hit-main{flex:1;min-width:0}
+.hit-n{font-size:14px;font-weight:600;line-height:1.35;word-break:break-all}
+.hit-s{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.hit-q{font-family:var(--mono);font-size:15px;text-align:right;white-space:nowrap;min-width:74px;font-variant-numeric:tabular-nums}
+.hit-q em{font-style:normal;color:var(--muted);font-size:12px}
+.plus{border:0;border-radius:9px;background:var(--accent);color:#fff;font-size:17px;font-weight:700;
+      padding:12px 15px;white-space:nowrap}
+.minus{border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--muted);padding:12px 10px;font-size:15px}
+
+/* 相機 */
+.cam{background:#000;border-radius:10px;overflow:hidden;margin-bottom:9px;position:relative;display:none}
+.cam.on{display:block}
+#video{width:100%;display:block;max-height:42vh;object-fit:cover;background:#000}
+.reticle{position:absolute;inset:24% 10%;border:2px solid rgba(255,255,255,.85);border-radius:8px;pointer-events:none}
+.reticle::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:#FF3B30}
+.cam-bar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:8px;background:linear-gradient(transparent,rgba(0,0,0,.6))}
+.cam-bar button{flex:1;background:rgba(255,255,255,.93);border:0;border-radius:8px;padding:9px;font-weight:700}
+.camstate{position:absolute;top:8px;left:8px;right:8px;color:#fff;font-size:12px;background:rgba(0,0,0,.55);padding:5px 9px;border-radius:6px}
+.startbtn{width:100%;padding:15px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-size:17px;font-weight:700;margin-bottom:9px}
+.startbtn.hide{display:none}
+#code{width:100%;padding:12px;font-size:17px;font-family:var(--mono);border:2px solid var(--accent);border-radius:9px}
+
+/* 回饋卡 */
+.card{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--wait-bg);margin-bottom:9px;min-height:96px}
+.card.is-ok{background:var(--ok-bg);border-color:var(--ok)}
+.card.is-bad{background:var(--bad-bg);border-color:var(--bad)}
+.card.is-extra{background:var(--extra-bg);border-color:var(--extra)}
+.card-tag{font-size:12px;font-weight:700;letter-spacing:.08em}
+.card.is-ok .card-tag{color:var(--ok)} .card.is-bad .card-tag{color:var(--bad)} .card.is-extra .card-tag{color:var(--extra)}
+.card-name{font-size:16px;font-weight:700;margin:3px 0 2px;word-break:break-all;line-height:1.35}
+.card-sub{font-size:11px;color:var(--muted);font-family:var(--mono);word-break:break-all}
+.card-num{margin-top:5px;font-family:var(--mono);font-size:23px;font-variant-numeric:tabular-nums}
+.card-num small{font-size:12px;color:var(--muted);font-family:var(--sans)}
+
+/* 清單 */
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--muted)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.filters select,.filters input[type=search]{padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:14px}
+.filters input[type=search]{flex:1;min-width:120px}
+.tablebox{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{background:#F5F6F8;text-align:left;font-size:11px;color:var(--muted);padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody td{padding:8px;border-bottom:1px solid #EDEFF2;font-size:13px;vertical-align:top}
+.c-name{word-break:break-all}
+.c-code{font-family:var(--mono);font-size:11px;color:var(--muted);display:block}
+.c-num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.act{width:56px;padding:6px 4px;font-family:var(--mono);text-align:right;border:1px solid var(--line);border-radius:6px;font-size:15px}
+tr.r-ok{background:var(--ok-bg)} tr.r-bad{background:var(--bad-bg)} tr.r-extra{background:var(--extra-bg)}
+tr.r-ok .c-diff{color:var(--ok)} tr.r-bad .c-diff{color:var(--bad);font-weight:700} tr.r-extra .c-diff{color:var(--extra);font-weight:700}
+.uniq{display:inline-block;font-size:10px;border:1px solid var(--accent);color:var(--accent);border-radius:3px;padding:0 3px}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+
+/* 報告 */
+.rep{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px}
+.rep h1{font-size:19px;margin:0 0 2px;letter-spacing:.04em}
+.rep .rmeta{font-size:12px;color:var(--muted);margin-bottom:14px}
+.rep h2{font-size:14px;margin:20px 0 7px;padding-bottom:5px;border-bottom:2px solid var(--ink);letter-spacing:.06em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+.kpi span{display:block;font-size:11px;color:var(--muted)}
+.kpi b{font-family:var(--mono);font-size:21px;font-variant-numeric:tabular-nums}
+.kpi.k-ok b{color:var(--ok)} .kpi.k-bad b{color:var(--bad)} .kpi.k-extra b{color:var(--extra)}
+.rep table{font-size:12px;border:1px solid var(--line)}
+.rep th,.rep td{border:1px solid var(--line);padding:5px 7px}
+.rep thead th{background:#F5F6F8}
+.rep .note{font-size:11px;color:var(--muted);margin-top:6px}
+.sign{display:flex;gap:24px;margin-top:26px;font-size:12px}
+.sign div{flex:1;border-top:1px solid var(--ink);padding-top:5px}
+
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}
+.tools button{flex:1 1 auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 8px;color:var(--ink)}
+.tools button.warn{color:var(--bad);border-color:#EFC5C1}
+.tools button.go{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+
+/* 綁定 */
+.bind{display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);padding:12px;overflow:auto}
+.bind.show{display:block}
+.bind-in{background:#fff;border-radius:12px;padding:14px;max-width:640px;margin:6vh auto}
+.bind-in h3{margin:0 0 4px;font-size:16px;color:var(--extra)}
+#bindSearch{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
+#bindList{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+#bindList div{padding:10px;border-bottom:1px solid var(--line);font-size:13px}
+.bl-code{font-family:var(--mono);color:var(--muted);font-size:11px}
+
+.foot{margin:12px 0 26px;font-size:12px;color:var(--muted);line-height:1.7}
+.foot b{color:var(--ink)}
+
+@media print{
+  body{background:#fff}
+  .top,.tabs,.tools,.foot,.stepbar,.bind{display:none!important}
+  .pane{display:none!important} #pRep.pane{display:block!important}
+  .wrap{max-width:none;padding:0}
+  .rep{border:0;padding:0}
+  .rep h2{margin-top:14px}
+  table{page-break-inside:auto} tr{page-break-inside:avoid}
+  @page{size:A4 portrait;margin:14mm}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="top-row">
+      <select id="storeSel" onchange="switchStore(this.value)"></select>
+      <span class="savetag" id="saveTag">—</span>
+    </div>
+    <div class="meter">
+      <i class="m-ok" id="mOk" style="width:0%"></i>
+      <i class="m-bad" id="mBad" style="width:0%"></i>
+      <i class="m-extra" id="mExtra" style="width:0%"></i>
+    </div>
+    <div class="stats">
+      <div>已盤 <b id="stDone">0</b>/<b id="stTotal">0</b></div>
+      <div class="s-ok">相符 <b id="stOk">0</b></div>
+      <div class="s-bad">差異 <b id="stBad">0</b></div>
+      <div class="s-extra">清單外 <b id="stExtra">0</b></div>
+      <div>盤盈 <b id="stPlus">0</b>·盤虧 <b id="stMinus">0</b></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="on" onclick="tab('Search',this)">搜尋盤點</button>
+    <button onclick="tab('Scan',this)">相機掃描</button>
+    <button onclick="tab('List',this)">清單</button>
+    <button onclick="tab('Rep',this)">報告</button>
+  </div>
+
+  <div class="stepbar" id="stepbar">
+    <span>每次加</span>
+    <button onclick="setStep(1)" id="s1" class="on">1</button>
+    <button onclick="setStep(5)" id="s5">5</button>
+    <button onclick="setStep(10)" id="s10">10</button>
+    <input id="step" type="number" value="1" min="1" onchange="markStep()" style="width:58px;padding:6px;text-align:center;border:1px solid var(--line);border-radius:7px;font-family:var(--mono)">
+    <span style="font-size:12px">綑裝標籤選 10</span>
+  </div>
+
+  <!-- 搜尋盤點 -->
+  <div class="pane on" id="pSearch">
+    <input id="q" placeholder="打關鍵字,例如 17PM hoda 白" autocomplete="off" autocapitalize="off" oninput="qRender()">
+    <div class="qhint">空格分隔多個關鍵字,全部符合才顯示。點「+」就加一件。</div>
+    <div id="qList"></div>
+  </div>
+
+  <!-- 相機掃描 -->
+  <div class="pane" id="pScan">
+    <button class="startbtn" id="startBtn" onclick="camStart()">開啟相機掃描</button>
+    <div class="cam" id="cam">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="reticle"></div>
+      <div class="camstate" id="camState">啟動中…</div>
+      <div class="cam-bar">
+        <button onclick="camStop()">關閉相機</button>
+        <button onclick="torch()" id="torchBtn" style="display:none">手電筒</button>
+      </div>
+    </div>
+    <div class="card" id="card">
+      <div class="card-tag" id="cardTag">待掃描</div>
+      <div class="card-name" id="cardName">準備好了</div>
+      <div class="card-sub" id="cardSub">開相機,或用下面的輸入框</div>
+      <div class="card-num" id="cardNum"></div>
+    </div>
+    <input id="code" placeholder="手動輸入編號 / 藍牙條碼槍" autocomplete="off" autocapitalize="characters" spellcheck="false">
+  </div>
+
+  <!-- 清單 -->
+  <div class="pane" id="pList">
+    <div class="filters">
+      <button class="chip on" onclick="setF('all',this)">全部</button>
+      <button class="chip" onclick="setF('wait',this)">未盤</button>
+      <button class="chip" onclick="setF('bad',this)">有差異</button>
+      <button class="chip" onclick="setF('ok',this)">已相符</button>
+      <select id="fCat" onchange="render()"><option value="">全部大類</option></select>
+      <input type="search" id="fQ" placeholder="搜尋" oninput="render()">
+    </div>
+    <div class="tablebox">
+      <table><thead><tr><th>商品</th><th style="text-align:right">電腦</th><th style="text-align:right">實際</th><th style="text-align:right">差異</th></tr></thead>
+      <tbody id="tb"></tbody></table>
+      <div class="empty" id="empty" style="display:none">這個條件下沒有品項</div>
+    </div>
+  </div>
+
+  <!-- 報告 -->
+  <div class="pane" id="pRep">
+    <div class="tools">
+      <button class="go" onclick="window.print()">列印 / 存成 PDF</button>
+      <button onclick="exportDiff()">匯出差異 CSV</button>
+      <button onclick="exportAll()">匯出完整 CSV</button>
+    </div>
+    <div class="rep" id="repBody"></div>
+  </div>
+
+  <div class="tools">
+    <button onclick="undo()">復原上一筆</button>
+    <button onclick="saveProgress()">下載進度檔</button>
+    <button onclick="pick('prog')">載入進度</button>
+    <button onclick="exportAlias()">備份條碼表</button>
+    <button onclick="pick('alias')">還原條碼表</button>
+    <button class="go" onclick="pick('raw')">載入當天庫存檔</button>
+    <button onclick="pick('list')">載入 CSV 清單</button>
+    <button class="warn" onclick="resetAll()">清空本店</button>
+  </div>
+
+  <div class="foot">
+    <b>當天現場換門市</b> — 系統下載的原始 .xls / .xlsx 檔傳到手機後,按「載入當天庫存檔」直接開,會自動套用盤點表 SOP(排除專案手機補貼、贈品只留 kinyo/倚盟、合併 (A)- 重複品項)。<br>
+    <b>各店進度分開存</b> — 切換門市不會互相蓋掉,條碼對應表則五店共用。<br>
+    <b>報告</b> — 盤完切到「報告」分頁,按列印可在 iPhone 選「儲存到檔案」變成 PDF。
+  </div>
+</div>
+
+<div class="bind" id="bind">
+  <div class="bind-in">
+    <h3>這個條碼還沒對應商品</h3>
+    <p style="font-size:13px;margin:0 0 10px">條碼 <code id="bindCode" style="font-family:var(--mono);background:var(--wait-bg);padding:2px 6px;border-radius:4px"></code> — 選一次,以後自動認得。</p>
+    <input id="bindSearch" placeholder="輸入名稱或編號搜尋" autocomplete="off">
+    <div id="bindList"></div>
+    <div style="margin-top:10px;display:flex;gap:6px">
+      <button onclick="closeBind()" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff">略過</button>
+      <button onclick="addExtra()" style="flex:1;padding:10px;border:1px solid var(--extra);border-radius:8px;background:var(--extra-bg);color:var(--extra)">建為清單外</button>
+    </div>
+  </div>
+</div>
+
+<div class="bind" id="mapWin">
+  <div class="bind-in">
+    <h3 style="color:var(--accent)">確認欄位對應</h3>
+    <p style="font-size:13px;margin:0 0 10px" id="mapInfo"></p>
+    <div id="mapFields"></div>
+    <label style="display:block;margin-top:12px;font-size:13px">
+      <input type="checkbox" id="mapSOP" checked style="width:auto"> 套用盤點表 SOP(排除專案手機補貼、贈品只留 kinyo/倚盟、合併 (A)- 品項)
+    </label>
+    <div id="mapPreview" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
+    <div style="margin-top:12px;display:flex;gap:6px">
+      <button onclick="closeMap()" style="flex:1;padding:11px;border:1px solid var(--line);border-radius:8px;background:#fff">取消</button>
+      <button onclick="applyMap()" style="flex:2;padding:11px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700">建立盤點清單</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="filePick" accept=".xls,.xlsx,.csv,.json,.txt" style="display:none">
+
+<script>
+const KEY = 'ym_count_v2';
+
+/* db.stores[店名] = {items:[{c,id,n,q}], counts:{id:n}, extra:[{id,n,c}], log:[{id,n}]}
+   db.alias[條碼] = 商品編號   ← 五店共用 */
+let db = {alias:{}, stores:{}}, cur = '', filter = 'all';
+
+/* ── 存檔 ── */
+let canStore = false;
+try{ localStorage.setItem(KEY+'_t','1'); localStorage.removeItem(KEY+'_t'); canStore = true; }catch(e){}
+function tagSave(){
+  const el = document.getElementById('saveTag');
+  el.textContent = canStore ? '自動存檔開啟' : '請手動下載進度';
+  el.classList.toggle('on', canStore);
+}
+function save(){
+  if(!canStore) return;
+  try{
+    localStorage.setItem(KEY, JSON.stringify({db, cur, t:Date.now()}));
+    const el=document.getElementById('saveTag');
+    el.textContent='已存檔 ' + new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    el.classList.add('on');
+  }catch(e){ canStore=false; tagSave(); }
+}
+
+/* ── 基礎 ── */
+const esc = s => String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const norm = s => String(s).trim().replace(/^[_'\s]+/,'').toUpperCase();
+const isUniq = c => /唯一|展示機/.test(c);
+const S = () => db.stores[cur];
+function allItems(){
+  const s = S(); if(!s) return [];
+  return s.items.concat((s.extra||[]).map(e=>({c:'清單外', id:e.id, n:e.n, q:0, extra:true})));
+}
+function got(id){ const v = S().counts[id]; return v === undefined ? null : v; }
+function state(r){
+  if(r.extra) return 'extra';
+  const a = got(r.id);
+  if(a === null) return 'wait';
+  return a === r.q ? 'ok' : 'bad';
+}
+function step(){ return Math.max(1, parseInt(document.getElementById('step').value)||1); }
+function setStep(n){ document.getElementById('step').value = n; markStep(); }
+function markStep(){
+  const v = String(step());
+  ['1','5','10'].forEach(k=>document.getElementById('s'+k).classList.toggle('on', v===k));
+}
+
+/* ── 加減數量 ── */
+function bump(id, n){
+  const s = S();
+  s.counts[id] = (s.counts[id] === undefined ? 0 : s.counts[id]) + n;
+  if(s.counts[id] < 0) s.counts[id] = 0;
+  s.log.push({id, n});
+  const r = allItems().find(x=>x.id===id);
+  const st = state(r);
+  flash(r, st, n);
+  buzz(st==='extra' ? 'extra' : (got(id) > r.q ? 'over' : 'ok'));
+  refresh();
+}
+function setQty(id, v){
+  const s = S();
+  if(v === '') delete s.counts[id]; else s.counts[id] = Number(v);
+  refresh();
+}
+function undo(){
+  const s = S(), last = s.log.pop();
+  if(!last){ msg('沒有可復原的紀錄'); return; }
+  s.counts[last.id] -= last.n;
+  if(s.counts[last.id] <= 0 && !s.log.some(l=>l.id===last.id)) delete s.counts[last.id];
+  const r = allItems().find(x=>x.id===last.id);
+  msg('已復原:' + (r ? r.n : last.id));
+  refresh();
+}
+
+/* ── 掃描 ── */
+function scan(raw){
+  if(!hasData()){ msg('請先載入當天的庫存檔'); return; }
+  const code = norm(raw);
+  if(!code) return;
+  let r = allItems().find(x => norm(x.id) === code);
+  if(!r && db.alias[code]) r = allItems().find(x => x.id === db.alias[code]);
+  if(!r){ openBind(code); return; }
+  bump(r.id, step());
+}
+document.getElementById('code').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); scan(e.target.value); e.target.value=''; }
+});
+
+/* ── 回饋 ── */
+function flash(r, st, n){
+  const c = document.getElementById('card');
+  c.className = 'card is-' + (st==='wait'?'':st);
+  const a = got(r.id);
+  document.getElementById('cardTag').textContent =
+    st==='ok' ? '數量相符' : st==='extra' ? '清單外品項' : (a > r.q ? '超出電腦庫存' : '尚未盤足');
+  document.getElementById('cardName').textContent = r.n;
+  document.getElementById('cardSub').textContent = r.id + ' · ' + r.c + (isUniq(r.c)?' · 唯一碼':'');
+  document.getElementById('cardNum').innerHTML = `${a} <small>/ 電腦 ${r.q}</small> &nbsp;<small>本次 ${n>0?'+':''}${n}</small>`;
+}
+function msg(t){
+  const c = document.getElementById('card');
+  c.className='card';
+  document.getElementById('cardTag').textContent='提示';
+  document.getElementById('cardName').textContent=t;
+  document.getElementById('cardSub').textContent='';
+  document.getElementById('cardNum').textContent='';
+}
+let ac;
+function buzz(kind){
+  try{
+    if(navigator.vibrate) navigator.vibrate(kind==='ok'?40:[60,50,60]);
+    ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended') ac.resume();
+    const map={ok:[900,.07],over:[300,.2],extra:[520,.15],unknown:[220,.28]};
+    const [f,d]=map[kind]||map.ok;
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.type='square'; o.frequency.value=f;
+    g.gain.setValueAtTime(.07, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime+d);
+    o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+d);
+  }catch(e){}
+}
+
+/* ── 搜尋盤點 ── */
+function qRender(){
+  if(!hasData()) return;
+  const raw = document.getElementById('q').value.trim().toUpperCase();
+  const box = document.getElementById('qList');
+  if(!raw){ box.innerHTML = '<div class="qhint">開始打字就會出現符合的商品。</div>'; return; }
+  const toks = raw.split(/\s+/).filter(Boolean);
+  const hits = allItems().filter(r=>{
+    const hay = (r.n + ' ' + r.id + ' ' + r.c).toUpperCase();
+    return toks.every(t => hay.includes(t));
+  }).slice(0, 40);
+  if(!hits.length){ box.innerHTML = '<div class="qhint">找不到符合的商品,換個關鍵字試試。</div>'; return; }
+  box.innerHTML = hits.map(r=>{
+    const st = state(r), a = got(r.id);
+    return `<div class="hit r-${st==='wait'?'':st}">
+      <div class="hit-main">
+        <div class="hit-n">${esc(r.n)}${isUniq(r.c)?' <span class="uniq">唯一</span>':''}</div>
+        <div class="hit-s">${esc(r.id)} · ${esc(r.c)}</div>
+      </div>
+      <div class="hit-q">${a===null?'—':a}<em> / ${r.q}</em></div>
+      <button class="minus" onclick="bump('${r.id}',-1)">−</button>
+      <button class="plus" onclick="bump('${r.id}',step())">＋</button>
+    </div>`;
+  }).join('');
+}
+
+/* ── 清單 ── */
+function setF(f, el){
+  filter=f;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on'); render();
+}
+function render(){
+  if(!hasData()) return;
+  const cat = document.getElementById('fCat').value;
+  const q = document.getElementById('fQ').value.trim().toUpperCase();
+  const rows = allItems().filter(r=>{
+    const st = state(r);
+    if(filter==='wait' && st!=='wait') return false;
+    if(filter==='bad' && st!=='bad' && st!=='extra') return false;
+    if(filter==='ok' && st!=='ok') return false;
+    if(cat && r.c!==cat) return false;
+    if(q && !r.n.toUpperCase().includes(q) && !r.id.toUpperCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('tb').innerHTML = rows.map(r=>{
+    const st=state(r), a=got(r.id), d = a===null?'':(a-r.q);
+    return `<tr class="r-${st==='wait'?'':st}">
+      <td class="c-name">${esc(r.n)}${isUniq(r.c)?' <span class="uniq">唯一</span>':''}
+        <span class="c-code">${esc(r.id)} · ${esc(r.c)}</span></td>
+      <td class="c-num">${r.q}</td>
+      <td class="c-num"><input class="act" type="number" inputmode="numeric" value="${a===null?'':a}"
+          onchange="setQty('${r.id}', this.value)" onclick="this.select()"></td>
+      <td class="c-num c-diff">${d===''?'—':(d>0?'+'+d:d)}</td></tr>`;
+  }).join('');
+  document.getElementById('empty').style.display = rows.length?'none':'block';
+}
+
+/* ── 統計 ── */
+function calc(){
+  const rows = allItems();
+  let ok=0,bad=0,wait=0,extra=0,plus=0,minus=0;
+  rows.forEach(r=>{
+    const st=state(r);
+    if(st==='ok')ok++; else if(st==='bad')bad++; else if(st==='wait')wait++; else extra++;
+    const a=got(r.id);
+    if(a!==null){ const d=a-r.q; if(d>0)plus+=d; if(d<0)minus+=-d; }
+  });
+  return {rows, ok, bad, wait, extra, plus, minus, base:S().items.length};
+}
+function stats(){
+  if(!hasData()) return;
+  const c = calc(), T = c.base||1, set=(i,v)=>document.getElementById(i).textContent=v;
+  set('stDone', c.ok+c.bad); set('stTotal', c.base); set('stOk', c.ok);
+  set('stBad', c.bad); set('stExtra', c.extra); set('stPlus', c.plus); set('stMinus', c.minus);
+  document.getElementById('mOk').style.width=(c.ok/T*100)+'%';
+  document.getElementById('mBad').style.width=(c.bad/T*100)+'%';
+  document.getElementById('mExtra').style.width=(c.extra/T*100)+'%';
+}
+
+/* ── 報告 ── */
+function report(){
+  if(!hasData()) return;
+  const c = calc();
+  const diff = c.rows.filter(r=>state(r)==='bad').sort((a,b)=>(got(a.id)-a.q)-(got(b.id)-b.q));
+  const wait = c.rows.filter(r=>state(r)==='wait');
+  const ext  = c.rows.filter(r=>state(r)==='extra');
+  const byCat = {};
+  c.rows.forEach(r=>{
+    const k=r.c; byCat[k] = byCat[k] || {n:0,q:0,a:0,d:0,w:0};
+    const o=byCat[k], a=got(r.id);
+    o.n++; o.q+=r.q;
+    if(a===null) o.w++; else { o.a+=a; if(a!==r.q) o.d++; }
+  });
+  const row = r => {
+    const a=got(r.id), d=a-r.q;
+    return `<tr><td>${esc(r.c)}</td><td style="font-family:var(--mono);font-size:11px">${esc(r.id)}</td>
+      <td>${esc(r.n)}</td><td class="c-num">${r.q}</td><td class="c-num">${a===null?'':a}</td>
+      <td class="c-num" style="color:${d>0?'var(--extra)':'var(--bad)'};font-weight:700">${d>0?'+'+d:d}</td></tr>`;
+  };
+  const done = c.ok + c.bad, pct = c.base ? Math.round(done/c.base*100) : 0;
+  document.getElementById('repBody').innerHTML = `
+    <h1>庫存盤點結果報告</h1>
+    <div class="rmeta">${esc(cur)} ｜ 盤點日期 ${new Date().toLocaleDateString('zh-TW')} ｜ 產出時間 ${new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}</div>
+
+    <h2>盤點摘要</h2>
+    <div class="grid">
+      <div class="kpi"><span>應盤品項</span><b>${c.base}</b></div>
+      <div class="kpi"><span>已盤品項</span><b>${done}</b></div>
+      <div class="kpi"><span>完成率</span><b>${pct}%</b></div>
+      <div class="kpi k-ok"><span>數量相符</span><b>${c.ok}</b></div>
+      <div class="kpi k-bad"><span>有差異</span><b>${c.bad}</b></div>
+      <div class="kpi"><span>未盤到</span><b>${c.wait}</b></div>
+      <div class="kpi k-extra"><span>清單外</span><b>${c.extra}</b></div>
+      <div class="kpi k-extra"><span>盤盈件數</span><b>+${c.plus}</b></div>
+      <div class="kpi k-bad"><span>盤虧件數</span><b>-${c.minus}</b></div>
+    </div>
+    <div class="note">盤盈 = 實際多於電腦庫存;盤虧 = 實際少於電腦庫存。未盤到的品項不列入盈虧計算。</div>
+
+    <h2>各大類統計</h2>
+    <table><thead><tr><th>大類</th><th class="c-num">品項</th><th class="c-num">電腦庫存</th>
+      <th class="c-num">實際</th><th class="c-num">差異品項</th><th class="c-num">未盤</th></tr></thead><tbody>
+      ${Object.keys(byCat).map(k=>{const o=byCat[k];
+        return `<tr><td>${esc(k)}</td><td class="c-num">${o.n}</td><td class="c-num">${o.q}</td>
+        <td class="c-num">${o.a}</td><td class="c-num"${o.d?' style="color:var(--bad);font-weight:700"':''}>${o.d}</td>
+        <td class="c-num">${o.w}</td></tr>`;}).join('')}
+    </tbody></table>
+
+    <h2>差異明細（${diff.length} 項）</h2>
+    ${diff.length ? `<table><thead><tr><th>大類</th><th>商品編號</th><th>商品名稱</th>
+      <th class="c-num">電腦</th><th class="c-num">實際</th><th class="c-num">差異</th></tr></thead>
+      <tbody>${diff.map(row).join('')}</tbody></table>` : '<div class="note">沒有差異,全部相符。</div>'}
+
+    <h2>未盤到（${wait.length} 項）</h2>
+    ${wait.length ? `<table><thead><tr><th>大類</th><th>商品編號</th><th>商品名稱</th><th class="c-num">電腦庫存</th></tr></thead>
+      <tbody>${wait.map(r=>`<tr><td>${esc(r.c)}</td><td style="font-family:var(--mono);font-size:11px">${esc(r.id)}</td>
+      <td>${esc(r.n)}</td><td class="c-num">${r.q}</td></tr>`).join('')}</tbody></table>`
+      : '<div class="note">全部品項都已盤到。</div>'}
+
+    <h2>清單外品項（${ext.length} 項）</h2>
+    ${ext.length ? `<table><thead><tr><th>條碼 / 編號</th><th>暫定名稱</th><th class="c-num">實際</th></tr></thead>
+      <tbody>${ext.map(r=>`<tr><td style="font-family:var(--mono);font-size:11px">${esc(r.id)}</td>
+      <td>${esc(r.n)}</td><td class="c-num">${got(r.id)}</td></tr>`).join('')}</tbody></table>
+      <div class="note">這些是現場掃到但電腦庫存沒有的品項,需回系統確認來源。</div>`
+      : '<div class="note">沒有清單外品項。</div>'}
+
+    <div class="sign"><div>盤點人員簽名</div><div>店長覆核</div><div>區主管覆核</div></div>`;
+}
+
+function hasData(){ return !!(cur && db.stores[cur]); }
+function emptyState(){
+  document.getElementById('qList').innerHTML =
+    '<div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px;text-align:center;color:var(--muted);line-height:1.8">'
+    + '<div style="font-size:16px;color:var(--ink);font-weight:700;margin-bottom:6px">還沒有盤點清單</div>'
+    + '按下方的<b>「載入當天庫存檔」</b>,選擇今天從系統下載的<br>庫存盤點單(.xls / .xlsx),就可以開始盤點。</div>';
+  document.getElementById('tb').innerHTML='';
+  document.getElementById('empty').style.display='block';
+  document.getElementById('repBody').innerHTML =
+    '<div style="color:var(--muted);text-align:center;padding:26px">載入盤點清單並開始盤點後,這裡會出現完整報告。</div>';
+  ['stDone','stTotal','stOk','stBad','stExtra','stPlus','stMinus'].forEach(i=>document.getElementById(i).textContent='0');
+  ['mOk','mBad','mExtra'].forEach(i=>document.getElementById(i).style.width='0%');
+  document.getElementById('storeSel').innerHTML='<option>尚未載入門市</option>';
+}
+function refresh(){
+  if(!hasData()){ emptyState(); return; }
+  qRender(); render(); stats(); report(); save();
+}
+
+/* ── 門市 ── */
+function fillStores(){
+  if(!hasData()) return;
+  document.getElementById('storeSel').innerHTML =
+    Object.keys(db.stores).map(k=>`<option${k===cur?' selected':''}>${esc(k)}</option>`).join('');
+  const cats = [...new Set(S().items.map(r=>r.c))];
+  document.getElementById('fCat').innerHTML =
+    '<option value="">全部大類</option>' + cats.map(c=>`<option>${esc(c)}</option>`).join('');
+}
+function switchStore(name){
+  if(!db.stores[name]) return;
+  cur = name; camStop();
+  fillStores(); refresh();
+  msg('已切換到 ' + name);
+}
+function addStore(name, items){
+  const old = db.stores[name];
+  db.stores[name] = {items, counts: old?old.counts:{}, extra: old?old.extra:[], log: old?old.log:[]};
+}
+
+/* ── 相機 ── */
+const CDN = [
+  'https://cdn.jsdelivr.net/npm/@zxing/library@0.23.0/umd/index.min.js',
+  'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js',
+  'https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js'
+];
+let reader=null, stream=null, track=null, running=false, lastCode='', lastAt=0;
+const vid = () => document.getElementById('video');
+const camState = t => document.getElementById('camState').textContent = t;
+function loadZX(){
+  if(window.ZXing) return Promise.resolve();
+  return CDN.reduce((p,url)=>p.catch(()=>new Promise((res,rej)=>{
+    const s=document.createElement('script'); s.src=url; s.onload=()=>res(); s.onerror=()=>rej();
+    document.head.appendChild(s);
+  })), Promise.reject());
+}
+async function camStart(){
+  document.getElementById('cam').classList.add('on');
+  document.getElementById('startBtn').classList.add('hide');
+  camState('請求相機權限…'); buzz('ok');
+  try{
+    if('BarcodeDetector' in window){ await nativeScan(); return; }
+    camState('載入辨識程式…'); await loadZX(); await zxingScan();
+  }catch(e){ camState('相機無法啟動:' + (e&&e.message?e.message:'未知錯誤')); }
+}
+async function nativeScan(){
+  const det = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','qr_code']});
+  stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}}});
+  vid().srcObject = stream; await vid().play();
+  track = stream.getVideoTracks()[0]; checkTorch();
+  running = true; camState('對準條碼');
+  const loop = async()=>{ if(!running) return;
+    try{ const b = await det.detect(vid()); if(b&&b[0]) hit(b[0].rawValue); }catch(e){}
+    setTimeout(()=>requestAnimationFrame(loop),120); };
+  loop();
+}
+async function zxingScan(){
+  const H = new Map();
+  H.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+    ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.UPC_E, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
+    ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.QR_CODE]);
+  H.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  reader = new ZXing.BrowserMultiFormatReader(H,{delayBetweenScanAttempts:150});
+  const cb = (result)=>{ if(result) hit(result.getText?result.getText():result.text); };
+  const cons = {video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}};
+  if(reader.decodeFromConstraints){ await reader.decodeFromConstraints(cons, vid(), cb); }
+  else{
+    const tmp = await navigator.mediaDevices.getUserMedia(cons);
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    const cams = devs.filter(d=>d.kind==='videoinput');
+    const back = cams.find(d=>/back|rear|環境|後/i.test(d.label)) || cams[cams.length-1];
+    tmp.getTracks().forEach(t=>t.stop());
+    await reader.decodeFromVideoDevice(back?back.deviceId:undefined, vid(), cb);
+  }
+  running = true; stream = vid().srcObject;
+  track = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+  checkTorch(); camState('對準條碼');
+}
+function hit(code){
+  const now = Date.now();
+  if(code===lastCode && now-lastAt < 1400) return;
+  lastCode = code; lastAt = now;
+  camState('讀到 ' + code); scan(code);
+}
+function camStop(){
+  running = false;
+  try{ if(reader) reader.reset(); }catch(e){}
+  try{ if(vid().srcObject) vid().srcObject.getTracks().forEach(t=>t.stop()); }catch(e){}
+  try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch(e){}
+  vid().srcObject=null; stream=null; track=null;
+  document.getElementById('cam').classList.remove('on');
+  document.getElementById('startBtn').classList.remove('hide');
+}
+function checkTorch(){
+  try{ const cap = track&&track.getCapabilities?track.getCapabilities():null;
+    if(cap&&cap.torch) document.getElementById('torchBtn').style.display='block'; }catch(e){}
+}
+let torchOn=false;
+function torch(){ if(!track) return; torchOn=!torchOn;
+  track.applyConstraints({advanced:[{torch:torchOn}]}).catch(()=>{}); }
+
+/* ── 綁定 ── */
+let pendingCode=null;
+function openBind(code){
+  pendingCode = code;
+  document.getElementById('bindCode').textContent = code;
+  document.getElementById('bind').classList.add('show');
+  document.getElementById('bindSearch').value=''; bindList(''); buzz('unknown');
+}
+document.getElementById('bindSearch').addEventListener('input', e=>bindList(e.target.value));
+function bindList(q){
+  if(!hasData()) return;
+  q = q.trim().toUpperCase();
+  const toks = q.split(/\s+/).filter(Boolean);
+  const hits = S().items.filter(r=>{
+    const hay=(r.n+' '+r.id).toUpperCase();
+    return toks.every(t=>hay.includes(t));
+  }).slice(0,50);
+  document.getElementById('bindList').innerHTML = hits.length
+    ? hits.map(r=>`<div onclick="doBind('${r.id}')">${esc(r.n)}<br><span class="bl-code">${esc(r.id)} · ${esc(r.c)} · 電腦 ${r.q}</span></div>`).join('')
+    : '<div style="color:var(--muted);padding:10px">沒有符合的商品</div>';
+}
+function doBind(id){
+  db.alias[pendingCode] = id;
+  const code = pendingCode; closeBind(); bump(id, step());
+}
+function addExtra(){
+  if(!pendingCode) return;
+  const s = S();
+  if(!s.extra.some(e=>e.id===pendingCode)) s.extra.push({id:pendingCode, n:'清單外品項 '+pendingCode});
+  db.alias[pendingCode] = pendingCode;
+  const code = pendingCode; closeBind(); bump(code, step());
+}
+function closeBind(){ document.getElementById('bind').classList.remove('show'); pendingCode=null; }
+
+/* ── 匯出 / 讀檔 ── */
+function dl(name, text, type){
+  const b = new Blob(['\uFEFF'+text],{type:type||'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href=URL.createObjectURL(b); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+const stamp = () => new Date().toISOString().slice(0,10).replace(/-/g,'');
+const cell = v => `"${String(v).replace(/"/g,'""')}"`;
+function toCSV(rows){
+  const head=['倉庫名稱','大類','商品編號','商品名稱','電腦庫存','實際庫存','差異','狀態'];
+  const nm={ok:'相符',bad:'差異',wait:'未盤到',extra:'清單外'};
+  return [head.map(cell).join(',')].concat(rows.map(r=>{
+    const a=got(r.id);
+    return [cur,r.c,r.id,r.n,r.q, a===null?'':a, a===null?'':(a-r.q), nm[state(r)]].map(cell).join(',');
+  })).join('\r\n');
+}
+function exportAll(){ if(!hasData()) return; dl(`盤點結果_${cur}_${stamp()}.csv`, toCSV(allItems())); }
+function exportDiff(){
+  if(!hasData()) return;
+  const rows = allItems().filter(r=>state(r)!=='ok');
+  if(!rows.length){ msg('目前沒有差異'); return; }
+  dl(`盤點差異_${cur}_${stamp()}.csv`, toCSV(rows));
+}
+function saveProgress(){ if(!hasData()) return; dl(`盤點進度_${stamp()}.json`, JSON.stringify({db,cur}), 'application/json'); }
+function exportAlias(){
+  const n = Object.keys(db.alias).length;
+  if(!n){ msg('條碼對照表還是空的,掃過幾筆之後再備份'); return; }
+  dl(`條碼對照表_${stamp()}.json`, JSON.stringify({alias:db.alias}), 'application/json');
+  msg(`已備份 ${n} 筆條碼對應`);
+}
+
+let pickMode='prog';
+function pick(m){ pickMode=m; document.getElementById('filePick').click(); }
+
+/* ── 讀原始 .xls / .xlsx ── */
+const XCDN=['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+            'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'];
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  return XCDN.reduce((p,url)=>p.catch(()=>new Promise((res,rej)=>{
+    const t=document.createElement('script'); t.src=url; t.onload=()=>res(); t.onerror=()=>rej();
+    document.head.appendChild(t);
+  })), Promise.reject());
+}
+const ALIASES = {
+  w:['倉庫名稱','倉庫','門市','店別','store','分店','營業處'],
+  c:['大類','類別','商品大類','品類','分類'],
+  id:['商品編號','品號','商品代號','貨號','料號','商品碼'],
+  n:['商品名稱','品名','商品','名稱'],
+  q:['電腦庫存','庫存','庫存量','現有庫存','帳面庫存','結存數量','數量']
+};
+let rawAOA=null, rawHead=null, rawStart=0;
+
+async function openRaw(file){
+  msg('讀取檔案中…');
+  await loadXLSX();
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(new Uint8Array(buf), {type:'array', codepage:950});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
+  // 找標題列:同時含有商品編號類與商品名稱類的那一列
+  let hi = -1;
+  for(let i=0;i<Math.min(aoa.length,30);i++){
+    const row = (aoa[i]||[]).map(v=>String(v).trim());
+    const hasId = row.some(v=>ALIASES.id.includes(v));
+    const hasNm = row.some(v=>ALIASES.n.includes(v));
+    if(hasId && hasNm){ hi=i; break; }
+  }
+  if(hi < 0) throw new Error('找不到標題列,請確認檔案是庫存盤點單');
+  rawAOA = aoa; rawStart = hi+1;
+  rawHead = (aoa[hi]||[]).map(v=>String(v).trim());
+  showMap(file.name, aoa.length - rawStart);
+}
+function showMap(fname, n){
+  document.getElementById('mapInfo').textContent = `${fname} — 讀到 ${n} 列資料。請確認欄位對應:`;
+  const need = [['id','商品編號'],['n','商品名稱'],['q','電腦庫存'],['c','大類'],['w','倉庫名稱']];
+  document.getElementById('mapFields').innerHTML = need.map(([k,label])=>{
+    const guess = rawHead.findIndex(h => ALIASES[k].includes(h));
+    return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <span style="width:82px;font-size:13px">${label}</span>
+      <select id="map_${k}" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:7px">
+        <option value="-1">（沒有這欄）</option>
+        ${rawHead.map((h,i)=>`<option value="${i}"${i===guess?' selected':''}>${esc(h||('第'+(i+1)+'欄'))}</option>`).join('')}
+      </select></div>`;
+  }).join('');
+  document.getElementById('mapPreview').textContent =
+    '第一列資料:' + (rawAOA[rawStart]||[]).slice(0,6).join(' ｜ ');
+  document.getElementById('mapWin').classList.add('show');
+}
+function closeMap(){ document.getElementById('mapWin').classList.remove('show'); }
+
+function applyMap(){
+  const gi = k => parseInt(document.getElementById('map_'+k).value);
+  const I = {w:gi('w'), c:gi('c'), id:gi('id'), n:gi('n'), q:gi('q')};
+  if(I.id < 0 || I.n < 0){ alert('商品編號和商品名稱是必要欄位'); return; }
+  let rows = [];
+  for(let i=rawStart;i<rawAOA.length;i++){
+    const r = rawAOA[i] || [];
+    const id = String(r[I.id]||'').trim().replace(/^[_']+/,'');
+    const n  = String(r[I.n]||'').trim();
+    if(!id || !n) continue;
+    rows.push({
+      w: I.w<0?'':String(r[I.w]||'').trim(),
+      c: I.c<0?'未分類':String(r[I.c]||'').trim(),
+      id, n,
+      q: I.q<0?0:(parseInt(String(r[I.q]).replace(/[, ]/g,''))||0)
+    });
+  }
+  const report = {start: rows.length, sub:0, gift:0, merge:0};
+  if(document.getElementById('mapSOP').checked){
+    // 1 排除專案手機補貼
+    let a = rows.filter(r=>!/專案手機補貼/.test(r.c) && !/專案手機補貼/.test(r.n));
+    report.sub = rows.length - a.length; rows = a;
+    // 2 贈品類只留 kinyo / 倚盟
+    a = rows.filter(r=>{
+      if(!/贈品/.test(r.c)) return true;
+      return /^\s*(kinyo|倚盟)/i.test(r.n);
+    });
+    report.gift = rows.length - a.length; rows = a;
+    // 3 合併 (A)- 同名品項
+    const base = s => s.replace(/^[（(]\s*A\s*[）)]\s*[-－]?\s*/,'').trim();
+    const g = {};
+    rows.forEach(r=>{ const b = base(r.n); (g[b] = g[b] || []).push(r); });
+    const out = [];
+    Object.keys(g).forEach(b=>{
+      const arr = g[b];
+      if(arr.length === 1){ out.push(arr[0]); return; }
+      const plain = arr.find(r => base(r.n) === r.n.trim()) || arr[0];
+      const merged = {w:plain.w, c:plain.c, id:plain.id, n:plain.n,
+                      q: arr.reduce((s2,r)=>s2+r.q,0),
+                      also: arr.filter(r=>r.id!==plain.id).map(r=>r.id)};
+      out.push(merged); report.merge++;
+    });
+    rows = out;
+  }
+  if(!rows.length){ alert('處理後沒有資料'); return; }
+  const byStore = {};
+  rows.forEach(r=>{ const w = r.w || '本店'; (byStore[w] = byStore[w] || []).push(r); });
+  const names = Object.keys(byStore);
+  names.forEach(w=>{
+    addStore(w, byStore[w].map(r=>({c:r.c, id:r.id, n:r.n, q:r.q})));
+    byStore[w].forEach(r=>{ if(r.also) r.also.forEach(x=>{ db.alias[norm(x)] = r.id; }); });
+  });
+  cur = names[0];
+  closeMap(); fillStores(); refresh();
+  msg(`已建立 ${names.join('、')}:${rows.length} 品項` +
+      (report.sub||report.gift||report.merge
+        ? `（排除補貼 ${report.sub}、贈品濾除 ${report.gift}、合併 ${report.merge} 組）` : ''));
+}
+document.getElementById('filePick').addEventListener('change', function(){
+  const f=this.files[0]; if(!f) return;
+  if(pickMode==='raw' || /\.xlsx?$/i.test(f.name)){
+    openRaw(f).catch(err=>alert('讀檔失敗:' + err.message));
+    this.value=''; return;
+  }
+  const enc = /\.json$/i.test(f.name) ? 'utf-8'
+    : (confirm('這個 CSV 是 UTF-8 編碼嗎?\n\n確定 = UTF-8\n取消 = Big5(系統匯出常見)') ? 'utf-8':'big5');
+  const fr=new FileReader();
+  fr.onload = e=>{
+    try{
+      if(pickMode==='alias'){
+        const d=JSON.parse(e.target.result);
+        const a = d.alias || (d.db && d.db.alias) || {};
+        let add=0;
+        Object.keys(a).forEach(k=>{ if(!db.alias[k]) add++; db.alias[k]=a[k]; });
+        save(); msg(`條碼對照表已還原,新增 ${add} 筆(共 ${Object.keys(db.alias).length} 筆)`);
+      }else if(pickMode==='prog'){
+        const d=JSON.parse(e.target.result);
+        db=d.db; cur=d.cur && db.stores[d.cur] ? d.cur : Object.keys(db.stores)[0];
+        fillStores(); refresh(); msg('進度已載入');
+      }else{
+        const rows = parseCSV(e.target.result);
+        const byStore = {};
+        rows.forEach(r=>{ const w=r.w||'未命名門市'; (byStore[w]=byStore[w]||[]).push({c:r.c,id:r.id,n:r.n,q:r.q}); });
+        const names = Object.keys(byStore);
+        if(!names.length) throw new Error('CSV 沒有可用資料');
+        names.forEach(w=>addStore(w, byStore[w]));
+        cur = names[0]; fillStores(); refresh();
+        msg('已載入門市:' + names.join('、'));
+      }
+    }catch(err){ alert('讀檔失敗:' + err.message); }
+  };
+  fr.readAsText(f, enc); this.value='';
+});
+function parseCSV(text){
+  const rows=[]; let row=[],cur2='',qt=false;
+  text = text.replace(/^\uFEFF/,'');
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(qt){ if(ch==='"'){ if(text[i+1]==='"'){cur2+='"';i++;} else qt=false; } else cur2+=ch; }
+    else{
+      if(ch==='"') qt=true;
+      else if(ch===','){ row.push(cur2); cur2=''; }
+      else if(ch==='\n'){ row.push(cur2); rows.push(row); row=[]; cur2=''; }
+      else if(ch!=='\r') cur2+=ch;
+    }
+  }
+  if(cur2!=='' || row.length){ row.push(cur2); rows.push(row); }
+  const head = rows.shift().map(h=>h.trim());
+  const ix = n=>head.indexOf(n);
+  const [w,c,id,n,q] = ['倉庫名稱','大類','商品編號','商品名稱','電腦庫存'].map(ix);
+  if(id<0||n<0) throw new Error('找不到「商品編號」或「商品名稱」欄位');
+  return rows.filter(r=>r.length>1 && r[id]).map(r=>({
+    w: w<0?'':r[w].trim(), c: c<0?'未分類':r[c].trim(),
+    id: r[id].trim().replace(/^[_']+/,''), n: r[n].trim(), q: q<0?0:(parseInt(r[q])||0)
+  }));
+}
+function resetAll(){
+  if(!hasData()) return;
+  if(!confirm(`清空「${cur}」的所有盤點數量?\n其他門市和條碼對應表不受影響。`)) return;
+  const s=S(); s.counts={}; s.extra=[]; s.log=[];
+  refresh(); msg('已清空 ' + cur);
+}
+
+/* ── 分頁 ── */
+function tab(name, el){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p'+name).classList.add('on');
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('stepbar').style.display = (name==='Search'||name==='Scan') ? 'flex' : 'none';
+  if(name!=='Scan') camStop();
+  if(name==='Search') document.getElementById('q').focus();
+}
+
+/* ── 啟動 ── */
+tagSave();
+let restored = false;
+try{
+  const s = canStore ? localStorage.getItem(KEY) : null;
+  if(s){
+    const d = JSON.parse(s);
+    if(d && d.db && Object.keys(d.db.stores||{}).length){
+      const when = d.t ? new Date(d.t).toLocaleString('zh-TW') : '先前';
+      if(confirm(`發現未完成的盤點紀錄(${when})\n\n確定 = 接續\n取消 = 重新開始`)){
+        db = d.db; cur = d.cur && db.stores[d.cur] ? d.cur : Object.keys(db.stores)[0];
+        restored = true;
+      }
+    }
+  }
+}catch(e){}
+if(!restored){ db = {alias:{}, stores:{}}; cur = ''; }
+fillStores(); markStep(); refresh();
+// 未加到主畫面時提醒(避開 Safari 七天清除)
+if(/iPhone|iPad|iPod/.test(navigator.userAgent) && navigator.standalone === false){
+  const b=document.createElement('div');
+  b.style.cssText='background:#FDF0DF;border:1px solid #E8C48E;color:#A45B00;border-radius:9px;padding:10px 12px;margin-bottom:9px;font-size:13px;line-height:1.6';
+  b.innerHTML='建議按 Safari 下方的<b>分享</b>圖示 → <b>加入主畫面</b>,'
+    + '之後從主畫面開啟,盤點紀錄才不會被 Safari 的七天規則清掉。'
+    + '<button onclick="this.parentNode.remove()" style="display:block;margin-top:6px;border:1px solid #E8C48E;background:#fff;border-radius:6px;padding:5px 12px;color:#A45B00">知道了</button>';
+  const w=document.querySelector('.wrap');
+  w.insertBefore(b, w.children[1]);
+}
+window.addEventListener('beforeunload', e=>{
+  if(!canStore && hasData() && S().log.length){ e.preventDefault(); e.returnValue=''; }
+});
+</script>
+</body>
+</html>
